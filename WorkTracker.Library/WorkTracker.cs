@@ -132,6 +132,13 @@ namespace WorkTracker.Library
             return working != null;
         }
 
+        public async Task<bool> HasSucceededAsync(SqlConnection connection, string queue, string name)
+        {
+            // todo: make this QueryFirstOrDefault not QuerySingleOrDefault
+            var succeeded = await connection.GetWhereAsync<Succeeded>(new { queue, name });
+            return succeeded != null;
+        }
+
         private async Task StartInnerAsync(SqlConnection cn, string queue, string name, string data = null)
         {
             await cn.SaveAsync(new Working() 
@@ -140,6 +147,6 @@ namespace WorkTracker.Library
                 Name = name,                 
                 Data = data 
             });
-        }
+        }        
     }
 }
