@@ -8,7 +8,7 @@ using (var job = await JobTracker.StartAsync(userName, getConnection))
 {
    /*
    do whatever work you need to do in here.
-   When the using block exits, the job will be marked successful unless you call FailAsync somewhere in here
+   When the using block exits, the job will be marked successful unless you call FailedAsync somewhere in here
    */
 }
 ```
