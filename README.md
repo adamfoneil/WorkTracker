@@ -13,7 +13,7 @@ using (var job = await JobTracker.StartAsync(userName, getConnection))
 }
 ```
 
-If you want to assure that the same job can't run more than once, use the `StartUniqueAsync` method and pass some sort of key you decide is unique in your application:
+If you want to assure that the same job can't run more than once, use the `StartUniqueAsync` method and pass some sort of key you decide is unique in your application. You'll get an exception if the job has been run before. (Maybe it should allow restarting if it failed before?)
 
 ```csharp
 var userName = "adamo";
