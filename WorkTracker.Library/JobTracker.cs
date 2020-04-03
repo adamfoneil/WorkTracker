@@ -29,16 +29,16 @@ namespace JobManager.Library
 
         internal const string Schema = "jobs";
 
-        public static async Task<JobTracker> StartAsync(string userName, string key, Func<SqlConnection> getConnection, object data = null)
+        public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, object data = null)
         {
-            _getConnection = getConnection;   
+            _getConnection = getConnection;
             using (var cn = _getConnection.Invoke())
             {
                 await InitializeAsync(cn);
 
-                var job = new Job() 
-                { 
-                    UserName = userName, 
+                var job = new Job()
+                {
+                    UserName = userName,
                     Key = key,
                     Status = JobStatus.Working,
                     StartTime = DateTime.UtcNow
@@ -49,6 +49,11 @@ namespace JobManager.Library
                 var jobId = await cn.SaveAsync(job);
                 return new JobTracker(jobId, userName, key);
             }
+        }
+
+        public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, object data = null)
+        {
+            return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, data);
         }
 
         public async Task FailedAsync(Exception exception)

@@ -6,7 +6,7 @@ namespace JobManager.Library.Models
     [Schema(JobTracker.Schema)]
     public class Error
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [References(typeof(Job))]
         public long JobId { get; set; }

@@ -1,7 +1,8 @@
+using JobManager.Library;
+using Microsoft.Data.SqlClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SqlServer.LocalDb;
 using System;
-using System.Threading.Tasks;
 
 namespace JobManager.Test
 {
@@ -9,16 +10,25 @@ namespace JobManager.Test
     public class BasicTests
     {
         [TestMethod]
-        public void SimpleJob()
-        {
-            using (var cn = LocalDb.GetConnection("JobManager")) { }
+        public void SimpleSucceedJob()
+        {            
+            Func<SqlConnection> getConnection = () => LocalDb.GetConnection("JobTracker");
 
-            var jobManager = new Library.JobManager(LocalDb.GetConnectionString("JobManager"));
-            jobManager.ExecuteAsync("all-jobs", "my-job", async () =>
+            using (var job = JobTracker.StartAsync("adamo", getConnection).Result)
             {
-                Console.WriteLine("this is my job");
-                await Task.CompletedTask;
-            }).Wait();
+                // doesn't matter what's in here
+            }
+        }
+
+        [TestMethod]
+        public void SimpleFailedJob()
+        {
+            Func<SqlConnection> getConnection = () => LocalDb.GetConnection("JobTracker");
+
+            using (var job = JobTracker.StartAsync("adamo", getConnection).Result)
+            {
+                job.FailedAsync(new Exception("this is an error")).Wait();
+            }
         }
     }
 }
