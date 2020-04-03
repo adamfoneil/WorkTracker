@@ -3,13 +3,13 @@ using System;
 
 namespace JobManager.Library.Models
 {
-    [Schema(JobManager.Schema)]
+    [Schema(JobTracker.Schema)]
     public class Error
     {
         public int Id { get; set; }
 
         [References(typeof(Job))]
-        public int JobId { get; set; }
+        public long JobId { get; set; }
 
         public string Message { get; set; }
 

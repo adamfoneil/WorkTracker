@@ -12,25 +12,23 @@ namespace JobManager.Library.Models
         Failed
     }
 
-    [Schema(JobManager.Schema)]
+    [Schema(JobTracker.Schema)]
     public class Job
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
+
+        [MaxLength(50)]
+        [Key]
+        public string UserName { get; set; }
 
         [MaxLength(255)]
         [Key]
-        public string PartitionKey { get; set; }
-
-        [MaxLength(255)]
-        [Key]
-        public string RowKey { get; set; }
+        public string Key { get; set; }
 
         public JobStatus Status { get; set; }
 
-        public int Attempts { get; set; }
-
         /// <summary>
-        /// any additional data about this job that you want to save
+        /// additional json data about 
         /// </summary>
         public string Data { get; set; }
 
