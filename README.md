@@ -44,5 +44,6 @@ using (var job = await JobTracker.StartAsync(userName, getConnection))
 
 If you want to log custom data with a job, use the optional `data` argument on the `StartAsync` or `StartUniqueAsync` methods. This will call `JsonConvert.SerializeObject` and store it in the [Job.Data](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Job.cs#L33) column.
 
-
 This library will (at least try to) create a couple tables in your database [Job](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Job.cs) and [Error](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Error.cs). Table creation happens with the [InitializeAsync](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/JobTracker.cs#L72) method.
+
+See the [tests](https://github.com/adamosoftware/WorkTracker/blob/master/JobManager.Test/BasicTests.cs) to see it in action.
