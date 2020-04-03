@@ -37,7 +37,7 @@ using (var job = await JobTracker.StartAsync(userName, getConnection))
     }
     catch (Exception exc)
     {
-        await job.FailedAsnc(exc);
+        await job.FailedAsync(exc);
     }
 }
 ```
