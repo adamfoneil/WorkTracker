@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>AO.JobTracker</PackageId>
+    <Authors>Adam O'Neil</Authors>
+    <Product>AO.JobTracker</Product>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>A generic background job logging library with SQL Server integration and optional idempotency</Description>
+    <Copyright>Copyright (c) Adam O'Neil 2020</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

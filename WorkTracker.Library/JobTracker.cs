@@ -4,7 +4,6 @@ using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
 using Newtonsoft.Json;
 using System;
-using System.Data;
 using System.Threading.Tasks;
 
 namespace JobManager.Library
