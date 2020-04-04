@@ -92,25 +92,35 @@ namespace JobManager.Library
             return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, data);
         }
 
-        public static async Task ExecuteUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
+        public static async Task<bool> ExecuteUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
         {
-            using (var job = await StartUniqueAsync(userName, key, getConnection, data, webhookUrl))
+            try
             {
-                try
+                using (var job = await StartUniqueAsync(userName, key, getConnection, data, webhookUrl))
                 {
-                    await action.Invoke();
-                    await job.SucceededAsync();
+                    try
+                    {
+                        await action.Invoke();
+                        await job.SucceededAsync();
+                        return true;
+                    }
+                    catch (Exception exc)
+                    {
+                        await job.FailedAsync(exc);
+                        return false;
+                    }
                 }
-                catch (Exception exc)
-                {
-                    await job.FailedAsync(exc);
-                }
+            }
+            catch (Exception exc)
+            {
+                if (exc.InnerException is DuplicateJobException) return false;
+                throw;
             }
         }
 
-        public static async Task ExecuteAsync(string userName, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
+        public static async Task<bool> ExecuteAsync(string userName, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
         {
-            await ExecuteUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, action, data, webhookUrl);
+            return await ExecuteUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, action, data, webhookUrl);
         }
 
         private static async Task PostWebhookAsync(SqlConnection cn)
