@@ -64,14 +64,16 @@ namespace JobManager.Test
         [TestMethod]
         public void RetryJob()
         {
+            string key = Guid.NewGuid().ToString();
+
             // create the first (failed) job
-            using (var job = JobTracker.StartUniqueAsync("adamo", "hello", GetConnection).Result)
+            using (var job = JobTracker.StartUniqueAsync("adamo", key, GetConnection).Result)
             {
                 job.FailedAsync("sample failure").Wait();
             }
 
             // we're allowed to retry a failed job
-            using (var job = JobTracker.StartUniqueAsync("adamo", "hello", GetConnection).Result)
+            using (var job = JobTracker.StartUniqueAsync("adamo", key, GetConnection).Result)
             {
                 job.SucceededAsync().Wait();
             }
