@@ -1,4 +1,6 @@
-﻿using Dapper.CX.SqlServer.Extensions.Long;
+﻿using Dapper;
+using Dapper.CX.Exceptions;
+using Dapper.CX.SqlServer.Extensions.Long;
 using JobManager.Library.Models;
 using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
@@ -46,9 +48,62 @@ namespace JobManager.Library
 
                 if (data != null) job.Data = JsonConvert.SerializeObject(data);
 
-                var jobId = await cn.SaveAsync(job);
+                try_again:
+
+                long jobId = 0;
+                try
+                {
+                    
+                    jobId = await cn.SaveAsync(job);
+                }
+                catch
+                {
+                    if (await RetryJobAsync(cn, userName, key, 10))
+                    {
+                        goto try_again;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
                 return new JobTracker(jobId, userName, key);
             }
+        }
+
+        /// <summary>
+        /// if a job has failed in the past, we may retry it a certain number of times
+        /// </summary>
+        private static async Task<bool> RetryJobAsync(SqlConnection cn, string userName, string key, int maxAttempts)
+        {
+            try
+            {
+                var job = await cn.GetWhereAsync<Job>(new { userName, key });
+                var retry = await cn.GetWhereAsync<Retry>(new { userName, key }) ?? new Retry() { UserName = userName, Key = key };
+                if (job.Status == JobStatus.Failed && retry.Attempts <= maxAttempts)
+                {
+                    retry.Attempts++;
+                    retry.Timestamp = DateTime.UtcNow;
+
+                    using (var txn = cn.BeginTransaction())
+                    {
+                        await cn.ExecuteAsync("DELETE [jobs].[Error] WHERE [JobId]=@jobId", new { jobId = job.Id }, txn);
+                        await cn.DeleteAsync<Job>(job.Id, txn);
+                        await cn.SaveAsync(retry, txn: txn);
+                        txn.Commit();
+                    }
+                    
+                    return true;
+                }
+
+                return false;
+            }
+            catch 
+            {
+                return false;
+            }
+            
         }
 
         public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, object data = null)
@@ -94,7 +149,8 @@ namespace JobManager.Library
             await DataModel.CreateTablesAsync(new[]
             {
                 typeof(Job),
-                typeof(Error)
+                typeof(Error),
+                typeof(Retry)
             }, cn);
 
             _initialized = true;

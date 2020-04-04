@@ -61,6 +61,22 @@ namespace JobManager.Test
             AssertJobExists(jobId);
         }
 
+        [TestMethod]
+        public void RetryJob()
+        {
+            // create the first (failed) job
+            using (var job = JobTracker.StartUniqueAsync("adamo", "hello", GetConnection).Result)
+            {
+                job.FailedAsync("sample failure").Wait();
+            }
+
+            // we're allowed to retry a failed job
+            using (var job = JobTracker.StartUniqueAsync("adamo", "hello", GetConnection).Result)
+            {
+                job.SucceededAsync().Wait();
+            }
+        }
+
         private static void AssertJobExists(long jobId)
         {
             using (var cn = GetConnection())
