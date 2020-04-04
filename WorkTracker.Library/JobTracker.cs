@@ -6,6 +6,7 @@ using JobManager.Library.Models;
 using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Data;
 using System.Net.Http;
@@ -114,7 +115,15 @@ namespace JobManager.Library
 
         private static string ToJsonInner(Job job)
         {
-            return JsonConvert.SerializeObject(job);
+            var obj = JObject.FromObject(job);
+            
+            if (job.Data != null)
+            {
+                var data = JObject.Parse(job.Data);
+                obj.Add("data", data);
+            }
+
+            return obj.ToString();
         }
 
 

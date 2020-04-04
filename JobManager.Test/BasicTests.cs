@@ -7,6 +7,7 @@ using System;
 using Dapper.CX.Extensions;
 using Dapper.CX.SqlServer.Extensions.Long;
 using JobManager.Library.Exceptions;
+using Newtonsoft.Json.Linq;
 
 namespace JobManager.Test
 {
@@ -117,6 +118,8 @@ namespace JobManager.Test
             using (var job = JobTracker.StartAsync("adamo", GetConnection, data).Result)
             {
                 string json = job.ToJson();
+                var obj = JObject.Parse(json);
+                Assert.IsTrue(obj.ContainsKey("data"));
             }
         }
 

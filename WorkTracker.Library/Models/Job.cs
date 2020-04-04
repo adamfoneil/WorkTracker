@@ -1,5 +1,6 @@
 ﻿using AO.DbSchema.Attributes;
 using ModelSync.Library.Models;
+using Newtonsoft.Json;
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -28,8 +29,9 @@ namespace JobManager.Library.Models
         public JobStatus Status { get; set; }
 
         /// <summary>
-        /// additional json data about 
+        /// additional json data about job -- ignored by default serialization and added back manually for better event payload formatting
         /// </summary>
+        [JsonIgnore]
         public string Data { get; set; }
 
         public DateTime StartTime { get; set; }
