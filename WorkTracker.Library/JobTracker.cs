@@ -5,6 +5,7 @@ using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
 using Newtonsoft.Json;
 using System;
+using System.Data;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,12 +56,10 @@ namespace JobManager.Library
                 if (data != null) CurrentJob.Data = JsonConvert.SerializeObject(data);
 
                 try_again:
-
-                long jobId = 0;
+                
                 try
                 {
-
-                    jobId = await cn.SaveAsync(CurrentJob);
+                    await cn.SaveAsync(CurrentJob);
                     await PostWebhookAsync(cn);
                 }
                 catch
@@ -76,7 +75,7 @@ namespace JobManager.Library
                     }
                 }
 
-                return new JobTracker(jobId, userName, key);
+                return new JobTracker(CurrentJob.Id, userName, key);
             }
         }
 
@@ -166,14 +165,18 @@ namespace JobManager.Library
         {            
             using (var cn = _getConnection.Invoke())
             {
-                await cn.SaveAsync(new Error()
+                using (var txn = cn.BeginTransaction())
                 {
-                    JobId = JobId,
-                    Message = message,
-                    Timestamp = DateTime.UtcNow
-                });
+                    await cn.SaveAsync(new Error()
+                    {
+                        JobId = JobId,
+                        Message = message,
+                        Timestamp = DateTime.UtcNow
+                    }, txn: txn);
 
-                await PostWebhookAsync(cn);
+                    await EndJobAsync(cn, JobStatus.Failed, txn);
+                    txn.Commit();
+                }                                
             }
 
             _autoDispose = false;
@@ -185,15 +188,19 @@ namespace JobManager.Library
         public async Task SucceededAsync()
         {
             using (var cn = _getConnection.Invoke())
-            {                
-                CurrentJob.Status = JobStatus.Succeeded;
-                CurrentJob.EndTime = DateTime.UtcNow;
-
-                await cn.UpdateAsync(CurrentJob, model => model.Status, model => model.EndTime);
-                await PostWebhookAsync(cn);
+            {
+                await EndJobAsync(cn, JobStatus.Succeeded);                
             }
 
             _autoDispose = false;
+        }
+
+        private static async Task EndJobAsync(SqlConnection cn, JobStatus status, IDbTransaction txn = null)
+        {
+            CurrentJob.Status = status;
+            CurrentJob.EndTime = DateTime.UtcNow;
+            await cn.SaveAsync(CurrentJob, txn: txn);
+            await PostWebhookAsync(cn);
         }
 
         private static async Task InitializeAsync(SqlConnection cn)
