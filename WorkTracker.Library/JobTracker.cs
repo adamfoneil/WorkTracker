@@ -25,6 +25,7 @@ namespace JobManager.Library
         public string Key { get; }
 
         private JobStatus _statusOnDispose = JobStatus.Succeeded;
+        private bool _autoDispose = true;
 
         internal const string Schema = "jobs";
 
@@ -55,7 +56,9 @@ namespace JobManager.Library
             return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, data);
         }
 
-        public async Task FailedAsync(Exception exception)
+        public async Task FailedAsync(Exception exception) => await FailedAsync(exception.Message);
+        
+        public async Task FailedAsync(string message)
         {
             _statusOnDispose = JobStatus.Failed;
             using (var cn = _getConnection.Invoke())
@@ -63,10 +66,25 @@ namespace JobManager.Library
                 await cn.SaveAsync(new Error()
                 {
                     JobId = JobId,
-                    Message = exception.Message,
+                    Message = message,
                     Timestamp = DateTime.UtcNow
                 });
             }
+        }
+
+        /// <summary>
+        /// call this as the last line of your work to avoid the synchronous job update
+        /// </summary>        
+        public async Task SucceededAsync()
+        {
+            using (var cn = _getConnection.Invoke())
+            {
+                await cn.UpdateAsync(
+                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId },
+                    model => model.Status, model => model.EndTime);
+            }
+
+            _autoDispose = false;
         }
 
         private static async Task InitializeAsync(SqlConnection cn)
@@ -84,12 +102,13 @@ namespace JobManager.Library
 
         public void Dispose()
         {
+            if (!_autoDispose) return;
+
             using (var cn = _getConnection.Invoke())
             {                
                 cn.Update(
                     new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId }, 
-                    model => model.Status, model => model.EndTime);
-                
+                    model => model.Status, model => model.EndTime);                
             }
         }
     }
