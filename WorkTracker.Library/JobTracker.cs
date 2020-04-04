@@ -33,7 +33,7 @@ namespace JobManager.Library
         
         public Job CurrentJob { get; private set; }
 
-        public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, object data = null, string webhookUrl = null)
+        public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, JobTrackerOptions options = null)
         {
             _getConnection = getConnection;
             using (var cn = _getConnection.Invoke())
@@ -46,10 +46,10 @@ namespace JobManager.Library
                     Key = key,
                     Status = JobStatus.Working,
                     StartTime = DateTime.UtcNow,
-                    WebhookUrl = webhookUrl
+                    WebhookUrl = options?.WebhookUrl
                 };
 
-                if (data != null) job.Data = JsonConvert.SerializeObject(data);
+                if (options?.Data != null) job.Data = JsonConvert.SerializeObject(options?.Data);
 
                 try_again:
                 
@@ -77,16 +77,16 @@ namespace JobManager.Library
             }
         }
 
-        public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, object data = null, string webhookUrl = null)
+        public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, JobTrackerOptions options = null)
         {
-            return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, data, webhookUrl);
+            return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, options);
         }
 
-        public static async Task<bool> ExecuteUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
+        public static async Task<bool> ExecuteUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, Func<Task> action, JobTrackerOptions options = null)
         {
             try
             {
-                using (var job = await StartUniqueAsync(userName, key, getConnection, data, webhookUrl))
+                using (var job = await StartUniqueAsync(userName, key, getConnection, options))
                 {
                     try
                     {
@@ -126,10 +126,9 @@ namespace JobManager.Library
             return obj.ToString();
         }
 
-
-        public static async Task<bool> ExecuteAsync(string userName, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
+        public static async Task<bool> ExecuteAsync(string userName, Func<SqlConnection> getConnection, Func<Task> action, JobTrackerOptions options = null)
         {
-            return await ExecuteUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, action, data, webhookUrl);
+            return await ExecuteUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, action, options);
         }
 
         private static async Task PostWebhookAsync(SqlConnection cn, Job job)

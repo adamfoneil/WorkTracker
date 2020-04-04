@@ -107,19 +107,25 @@ namespace JobManager.Test
         [TestMethod]
         public void CustomDataSerialization()
         {
+            const string fileName = "sampleFile.pdf";
+
             var data = new
             {
-                fileName = "sampleFile.pdf",
+                fileName,
                 date = new DateTime(2020, 4, 4),
                 flag = true,
                 values = new string[] { "this", "that", "other" }
             };
 
-            using (var job = JobTracker.StartAsync("adamo", GetConnection, data).Result)
+            using (var job = JobTracker.StartAsync("adamo", GetConnection, new JobTrackerOptions()
+            {
+                Data = data
+            }).Result)
             {
                 string json = job.ToJson();
                 var obj = JObject.Parse(json);
                 Assert.IsTrue(obj.ContainsKey("data"));
+                Assert.IsTrue(obj["data"]["fileName"].Value<string>().Equals(fileName));
             }
         }
 
