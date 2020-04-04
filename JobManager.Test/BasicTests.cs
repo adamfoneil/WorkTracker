@@ -23,7 +23,7 @@ namespace JobManager.Test
             using (var job = JobTracker.StartAsync("adamo", GetConnection).Result)
             {
                 // doesn't matter what's in here
-                jobId = job.JobId;
+                jobId = job.CurrentJob.Id;
             }
 
             AssertJobExists(jobId);
@@ -36,7 +36,7 @@ namespace JobManager.Test
 
             using (var job = JobTracker.StartAsync("adamo", GetConnection).Result)
             {
-                jobId = job.JobId;
+                jobId = job.CurrentJob.Id;
                 job.FailedAsync(new Exception("this is an error")).Wait();
             }
 
@@ -55,7 +55,7 @@ namespace JobManager.Test
 
             using (var job = JobTracker.StartAsync("adamo", GetConnection).Result)
             {
-                jobId = job.JobId;
+                jobId = job.CurrentJob.Id;
                 job.SucceededAsync().Wait();
             }
 
@@ -100,6 +100,23 @@ namespace JobManager.Test
             catch (Exception exc)
             {
                 Assert.IsTrue(exc.InnerException is DuplicateJobException);
+            }
+        }
+
+        [TestMethod]
+        public void CustomDataSerialization()
+        {
+            var data = new
+            {
+                fileName = "sampleFile.pdf",
+                date = new DateTime(2020, 4, 4),
+                flag = true,
+                values = new string[] { "this", "that", "other" }
+            };
+
+            using (var job = JobTracker.StartAsync("adamo", GetConnection, data).Result)
+            {
+                string json = job.ToJson();
             }
         }
 

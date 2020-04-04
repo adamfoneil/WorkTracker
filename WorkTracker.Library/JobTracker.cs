@@ -20,24 +20,17 @@ namespace JobManager.Library
         private static bool _initialized = false;
         private static Func<SqlConnection> _getConnection;
 
-        private JobTracker(long jobId, string userName, string key)
-        {
-            JobId = jobId;
-            UserName = userName;
-            Key = key;
-        }
-
-        public long JobId { get; }
-        public string UserName { get; }
-        public string Key { get; }
-        public string WebhookUrl { get; }
-
         private JobStatus _statusOnDispose = JobStatus.Succeeded;
         private bool _autoDispose = true;
         
-        public static Job CurrentJob { get; private set; }
-
         internal const string Schema = "jobs";
+
+        private JobTracker(Job job)
+        {
+            CurrentJob = job;
+        }
+        
+        public Job CurrentJob { get; private set; }
 
         public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, object data = null, string webhookUrl = null)
         {
@@ -46,7 +39,7 @@ namespace JobManager.Library
             {
                 await InitializeAsync(cn);
 
-                CurrentJob = new Job()
+                var job = new Job()
                 {
                     UserName = userName,
                     Key = key,
@@ -55,35 +48,31 @@ namespace JobManager.Library
                     WebhookUrl = webhookUrl
                 };
 
-                if (data != null) CurrentJob.Data = JsonConvert.SerializeObject(data);
+                if (data != null) job.Data = JsonConvert.SerializeObject(data);
 
                 try_again:
                 
                 try
                 {
-                    await cn.SaveAsync(CurrentJob);
-                    await PostWebhookAsync(cn);
+                    await cn.SaveAsync(job);
+                    await PostWebhookAsync(cn, job);
                 }
                 catch (CrudException)
                 {
-                    var existingJob = await cn.GetWhereAsync<Job>(new { userName, key });
-                    if (existingJob != null) throw new DuplicateJobException(existingJob);
-                    throw;
-                }
-                catch (Exception)
-                {
                     if (await RetryJobAsync(cn, userName, key, 10))
                     {
-                        CurrentJob.IsRetry = true;
+                        job.IsRetry = true;
                         goto try_again;
                     }
                     else
                     {
+                        var existingJob = await cn.GetWhereAsync<Job>(new { userName, key });
+                        if (existingJob != null) throw new DuplicateJobException(existingJob);
                         throw;
-                    }
+                    }                    
                 }
 
-                return new JobTracker(CurrentJob.Id, userName, key);
+                return new JobTracker(job);
             }
         }
 
@@ -118,24 +107,35 @@ namespace JobManager.Library
             }
         }
 
+        public string ToJson()
+        {
+            return ToJsonInner(CurrentJob);
+        }
+
+        private static string ToJsonInner(Job job)
+        {
+            return JsonConvert.SerializeObject(job);
+        }
+
+
         public static async Task<bool> ExecuteAsync(string userName, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
         {
             return await ExecuteUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, action, data, webhookUrl);
         }
 
-        private static async Task PostWebhookAsync(SqlConnection cn)
+        private static async Task PostWebhookAsync(SqlConnection cn, Job job)
         {
-            if (string.IsNullOrEmpty(CurrentJob.WebhookUrl)) return;
+            if (string.IsNullOrEmpty(job.WebhookUrl)) return;
 
-            string json = JsonConvert.SerializeObject(CurrentJob);
+            string json = ToJsonInner(job);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _client.PostAsync(CurrentJob.WebhookUrl, content);
+            var response = await _client.PostAsync(job.WebhookUrl, content);
 
             var @event = new Event()
             {
-                JobId = CurrentJob.Id,
-                Status = CurrentJob.Status,
-                Url = CurrentJob.WebhookUrl,
+                JobId = job.Id,
+                Status = job.Status,
+                Url = job.WebhookUrl,
                 Data = json,
                 ResponseCode = response.StatusCode,
                 ResponseContent = await response.Content.ReadAsStringAsync()
@@ -187,12 +187,12 @@ namespace JobManager.Library
                 {
                     await cn.SaveAsync(new Error()
                     {
-                        JobId = JobId,
+                        JobId = CurrentJob.Id,
                         Message = message,
                         Timestamp = DateTime.UtcNow
                     }, txn: txn);
 
-                    await EndJobAsync(cn, JobStatus.Failed, txn);
+                    await EndJobAsync(cn, CurrentJob, JobStatus.Failed, txn);
                     txn.Commit();
                 }                                
             }
@@ -207,18 +207,18 @@ namespace JobManager.Library
         {
             using (var cn = _getConnection.Invoke())
             {
-                await EndJobAsync(cn, JobStatus.Succeeded);                
+                await EndJobAsync(cn, CurrentJob, JobStatus.Succeeded);                
             }
 
             _autoDispose = false;
         }
 
-        private static async Task EndJobAsync(SqlConnection cn, JobStatus status, IDbTransaction txn = null)
+        private static async Task EndJobAsync(SqlConnection cn, Job job, JobStatus status, IDbTransaction txn = null)
         {
-            CurrentJob.Status = status;
-            CurrentJob.EndTime = DateTime.UtcNow;
-            await cn.SaveAsync(CurrentJob, txn: txn);
-            await PostWebhookAsync(cn);
+            job.Status = status;
+            job.EndTime = DateTime.UtcNow;
+            await cn.SaveAsync(job, txn: txn);
+            await PostWebhookAsync(cn, job);
         }
 
         private static async Task InitializeAsync(SqlConnection cn)
@@ -243,7 +243,7 @@ namespace JobManager.Library
             using (var cn = _getConnection.Invoke())
             {
                 cn.Update(
-                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId },
+                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = CurrentJob.Id },
                     model => model.Status, model => model.EndTime);
             }
         }
