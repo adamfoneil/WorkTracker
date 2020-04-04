@@ -243,9 +243,10 @@ namespace JobManager.Library
 
             using (var cn = _getConnection.Invoke())
             {
-                cn.Update(
-                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = CurrentJob.Id },
-                    model => model.Status, model => model.EndTime);
+                CurrentJob.Status = _statusOnDispose;
+                CurrentJob.EndTime = DateTime.UtcNow;
+                CurrentJob.Duration = CurrentJob.EndTime.Value.Subtract(CurrentJob.StartTime);
+                cn.Update(CurrentJob, model => model.Status, model => model.EndTime, model => model.Duration);
             }
         }
     }
