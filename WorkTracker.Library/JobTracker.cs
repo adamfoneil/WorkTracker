@@ -1,5 +1,7 @@
 ﻿using Dapper;
+using Dapper.CX.Exceptions;
 using Dapper.CX.SqlServer.Extensions.Long;
+using JobManager.Library.Exceptions;
 using JobManager.Library.Models;
 using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
@@ -62,7 +64,13 @@ namespace JobManager.Library
                     await cn.SaveAsync(CurrentJob);
                     await PostWebhookAsync(cn);
                 }
-                catch
+                catch (CrudException)
+                {
+                    var existingJob = await cn.GetWhereAsync<Job>(new { userName, key });
+                    if (existingJob != null) throw new DuplicateJobException(existingJob);
+                    throw;
+                }
+                catch (Exception)
                 {
                     if (await RetryJobAsync(cn, userName, key, 10))
                     {

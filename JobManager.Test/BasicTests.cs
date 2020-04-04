@@ -6,6 +6,7 @@ using SqlServer.LocalDb;
 using System;
 using Dapper.CX.Extensions;
 using Dapper.CX.SqlServer.Extensions.Long;
+using JobManager.Library.Exceptions;
 
 namespace JobManager.Test
 {
@@ -76,6 +77,29 @@ namespace JobManager.Test
             using (var job = JobTracker.StartUniqueAsync("adamo", key, GetConnection).Result)
             {
                 job.SucceededAsync().Wait();
+            }
+        }
+
+        [TestMethod]
+        public void DuplicateJob()
+        {
+            var key = Guid.NewGuid().ToString();
+
+            // first job will work (and succeed by default)
+            using (var job = JobTracker.StartUniqueAsync("adamo", key, GetConnection).Result)
+            {
+            }
+
+            // second call should fail with DuplicateJobException
+            try
+            {
+                using (var job = JobTracker.StartUniqueAsync("adamo", key, GetConnection).Result)
+                {
+                }
+            }
+            catch (Exception exc)
+            {
+                Assert.IsTrue(exc.InnerException is DuplicateJobException);
             }
         }
 
