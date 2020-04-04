@@ -18,6 +18,6 @@ namespace JobManager.Library
         /// <summary>
         /// implement this to customize the data posted to the webhook
         /// </summary>
-        public Func<JObject, JObject> UpdateEventData { get; set; }
+        public Action<JObject> UpdateEventData { get; set; }
     }
 }

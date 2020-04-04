@@ -117,15 +117,36 @@ namespace JobManager.Test
                 values = new string[] { "this", "that", "other" }
             };
 
-            using (var job = JobTracker.StartAsync("adamo", GetConnection, new JobTrackerOptions()
+            using (var jt = JobTracker.StartAsync("adamo", GetConnection, new JobTrackerOptions()
             {
                 Data = data
             }).Result)
             {
-                string json = job.ToJson();
+                string json = jt.ToJson();
                 var obj = JObject.Parse(json);
                 Assert.IsTrue(obj.ContainsKey("data"));
                 Assert.IsTrue(obj["data"]["fileName"].Value<string>().Equals(fileName));
+            }
+        }
+
+        [TestMethod]
+        public void UpdateCustomEventData()
+        {
+            Action<JObject> updatePayload = (obj) =>
+            {
+                obj.Add("greeting", "hello");
+                obj.Add("currentTime", DateTime.UtcNow);
+            };
+
+            using (var tracker = JobTracker.StartAsync("adamo", GetConnection, new JobTrackerOptions() 
+            {
+                UpdateEventData = updatePayload
+            }).Result)
+            {
+                string json = tracker.ToJson();
+                var obj = JObject.Parse(json);
+                Assert.IsTrue(obj.ContainsKey("greeting"));
+                Assert.IsTrue(obj.ContainsKey("currentTime"));
             }
         }
 

@@ -23,19 +23,21 @@ namespace JobManager.Library
 
         private JobStatus _statusOnDispose = JobStatus.Succeeded;
         private bool _autoDispose = true;
+        private readonly Action<JObject> _updateEventData;
         
         internal const string Schema = "jobs";
 
-        private JobTracker(Job job)
+        private JobTracker(Job job, Action<JObject> updateEventData = null)
         {
             CurrentJob = job;
+            _updateEventData = updateEventData;
         }
         
         public Job CurrentJob { get; private set; }
 
         public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, JobTrackerOptions options = null)
         {
-            _getConnection = getConnection;
+            _getConnection = getConnection;            
             using (var cn = _getConnection.Invoke())
             {
                 await InitializeAsync(cn);
@@ -73,7 +75,7 @@ namespace JobManager.Library
                     }                    
                 }
 
-                return new JobTracker(job);
+                return new JobTracker(job, options?.UpdateEventData);
             }
         }
 
@@ -110,10 +112,10 @@ namespace JobManager.Library
 
         public string ToJson()
         {
-            return ToJsonInner(CurrentJob);
+            return ToJsonInner(CurrentJob, _updateEventData);
         }
 
-        private static string ToJsonInner(Job job)
+        private static string ToJsonInner(Job job, Action<JObject> updateEventData = null)
         {
             var obj = JObject.FromObject(job);
             
@@ -122,7 +124,9 @@ namespace JobManager.Library
                 var data = JObject.Parse(job.Data);
                 obj.Add("data", data);
             }
-
+            
+            updateEventData?.Invoke(obj);
+                        
             return obj.ToString();
         }
 
