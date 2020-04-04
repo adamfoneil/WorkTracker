@@ -76,9 +76,9 @@ namespace JobManager.Library
             }
         }
 
-        public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, object data = null)
+        public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, object data = null, string webhookUrl = null)
         {
-            return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, data);
+            return await StartUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, data, webhookUrl);
         }
 
         public static async Task<bool> ExecuteUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, Func<Task> action, object data = null, string webhookUrl = null)
@@ -217,6 +217,7 @@ namespace JobManager.Library
         {
             job.Status = status;
             job.EndTime = DateTime.UtcNow;
+            job.Duration = job.EndTime?.Subtract(job.StartTime) ?? TimeSpan.Zero;
             await cn.SaveAsync(job, txn: txn);
             await PostWebhookAsync(cn, job);
         }
