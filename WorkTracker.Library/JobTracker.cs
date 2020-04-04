@@ -1,5 +1,4 @@
 ﻿using Dapper;
-using Dapper.CX.Exceptions;
 using Dapper.CX.SqlServer.Extensions.Long;
 using JobManager.Library.Models;
 using Microsoft.Data.SqlClient;
@@ -53,7 +52,7 @@ namespace JobManager.Library
                 long jobId = 0;
                 try
                 {
-                    
+
                     jobId = await cn.SaveAsync(job);
                 }
                 catch
@@ -93,17 +92,16 @@ namespace JobManager.Library
                         await cn.SaveAsync(retry, txn: txn);
                         txn.Commit();
                     }
-                    
+
                     return true;
                 }
 
                 return false;
             }
-            catch 
+            catch
             {
                 return false;
             }
-            
         }
 
         public static async Task<JobTracker> StartAsync(string userName, Func<SqlConnection> getConnection, object data = null)
@@ -112,7 +110,7 @@ namespace JobManager.Library
         }
 
         public async Task FailedAsync(Exception exception) => await FailedAsync(exception.Message);
-        
+
         public async Task FailedAsync(string message)
         {
             _statusOnDispose = JobStatus.Failed;
@@ -161,10 +159,10 @@ namespace JobManager.Library
             if (!_autoDispose) return;
 
             using (var cn = _getConnection.Invoke())
-            {                
+            {
                 cn.Update(
-                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId }, 
-                    model => model.Status, model => model.EndTime);                
+                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId },
+                    model => model.Status, model => model.EndTime);
             }
         }
     }

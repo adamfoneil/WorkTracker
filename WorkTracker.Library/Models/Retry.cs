@@ -8,13 +8,13 @@ namespace JobManager.Library.Models
     public class Retry
     {
         public long Id { get; set; }
-        
+
         [MaxLength(50)]
         [Key]
         public string UserName { get; set; }
 
         [MaxLength(255)]
-        [Key]        
+        [Key]
         public string Key { get; set; }
 
         public int Attempts { get; set; }
