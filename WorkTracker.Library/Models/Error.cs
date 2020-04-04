@@ -8,11 +8,11 @@ namespace JobManager.Library.Models
     {
         public long Id { get; set; }
 
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
         [References(typeof(Job))]
         public long JobId { get; set; }
 
-        public string Message { get; set; }
-
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public string Message { get; set; }        
     }
 }

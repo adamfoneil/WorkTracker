@@ -1,5 +1,7 @@
 ﻿using AO.DbSchema.Attributes;
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 namespace JobManager.Library.Models
 {
@@ -7,6 +9,8 @@ namespace JobManager.Library.Models
     public class Event
     {
         public long Id { get; set; }
+
+        public DateTime Timestamp { get; set; }
 
         public long JobId { get; set; }
 
@@ -22,7 +26,7 @@ namespace JobManager.Library.Models
         [Required]
         public string Data { get; set; }
 
-        public int ResponseCode { get; set; }
+        public HttpStatusCode ResponseCode { get; set; }
 
         public string ResponseContent { get; set; }
     }

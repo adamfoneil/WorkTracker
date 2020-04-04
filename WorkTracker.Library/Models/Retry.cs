@@ -9,6 +9,8 @@ namespace JobManager.Library.Models
     {
         public long Id { get; set; }
 
+        public DateTime Timestamp { get; set; }
+
         [MaxLength(50)]
         [Key]
         public string UserName { get; set; }
@@ -17,8 +19,6 @@ namespace JobManager.Library.Models
         [Key]
         public string Key { get; set; }
 
-        public int Attempts { get; set; }
-
-        public DateTime Timestamp { get; set; }
+        public int Attempts { get; set; }        
     }
 }
