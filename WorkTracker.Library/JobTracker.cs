@@ -5,12 +5,14 @@ using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
 using Newtonsoft.Json;
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace JobManager.Library
 {
     public class JobTracker : IDisposable
     {
+        private static HttpClient _client = new HttpClient();
         private static bool _initialized = false;
         private static Func<SqlConnection> _getConnection;
 
@@ -24,28 +26,32 @@ namespace JobManager.Library
         public long JobId { get; }
         public string UserName { get; }
         public string Key { get; }
+        public string WebhookUrl { get; }
 
         private JobStatus _statusOnDispose = JobStatus.Succeeded;
         private bool _autoDispose = true;
+        
+        public static Job CurrentJob { get; private set; }
 
         internal const string Schema = "jobs";
 
-        public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, object data = null)
+        public static async Task<JobTracker> StartUniqueAsync(string userName, string key, Func<SqlConnection> getConnection, object data = null, string webhookUrl = null)
         {
             _getConnection = getConnection;
             using (var cn = _getConnection.Invoke())
             {
                 await InitializeAsync(cn);
 
-                var job = new Job()
+                CurrentJob = new Job()
                 {
                     UserName = userName,
                     Key = key,
                     Status = JobStatus.Working,
-                    StartTime = DateTime.UtcNow
+                    StartTime = DateTime.UtcNow,
+                    WebhookUrl = webhookUrl
                 };
 
-                if (data != null) job.Data = JsonConvert.SerializeObject(data);
+                if (data != null) CurrentJob.Data = JsonConvert.SerializeObject(data);
 
                 try_again:
 
@@ -53,12 +59,14 @@ namespace JobManager.Library
                 try
                 {
 
-                    jobId = await cn.SaveAsync(job);
+                    jobId = await cn.SaveAsync(CurrentJob);
+                    await PostWebhookAsync(cn, CurrentJob);
                 }
                 catch
                 {
                     if (await RetryJobAsync(cn, userName, key, 10))
                     {
+                        CurrentJob.IsRetry = true;
                         goto try_again;
                     }
                     else
@@ -69,6 +77,13 @@ namespace JobManager.Library
 
                 return new JobTracker(jobId, userName, key);
             }
+        }
+
+        private static async Task PostWebhookAsync(SqlConnection cn, Job job)
+        {
+            if (string.IsNullOrEmpty(job.WebhookUrl)) return;
+
+            await Task.CompletedTask;
         }
 
         /// <summary>
@@ -122,6 +137,8 @@ namespace JobManager.Library
                     Message = message,
                     Timestamp = DateTime.UtcNow
                 });
+
+                await PostWebhookAsync(cn, CurrentJob);
             }
         }
 
@@ -131,10 +148,12 @@ namespace JobManager.Library
         public async Task SucceededAsync()
         {
             using (var cn = _getConnection.Invoke())
-            {
-                await cn.UpdateAsync(
-                    new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId },
-                    model => model.Status, model => model.EndTime);
+            {                
+                CurrentJob.Status = JobStatus.Succeeded;
+                CurrentJob.EndTime = DateTime.UtcNow;
+
+                await cn.UpdateAsync(CurrentJob, model => model.Status, model => model.EndTime);
+                await PostWebhookAsync(cn, CurrentJob);
             }
 
             _autoDispose = false;
@@ -148,7 +167,8 @@ namespace JobManager.Library
             {
                 typeof(Job),
                 typeof(Error),
-                typeof(Retry)
+                typeof(Retry),
+                typeof(Event)
             }, cn);
 
             _initialized = true;
@@ -163,7 +183,14 @@ namespace JobManager.Library
                 cn.Update(
                     new Job() { Status = _statusOnDispose, EndTime = DateTime.UtcNow, Id = JobId },
                     model => model.Status, model => model.EndTime);
+
+                PostWebhook(cn, CurrentJob);
             }
+        }
+
+        private void PostWebhook(SqlConnection cn, Job currentJob)
+        {
+            //throw new NotImplementedException();
         }
     }
 }

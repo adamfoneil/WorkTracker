@@ -35,5 +35,10 @@ namespace JobManager.Library.Models
         public DateTime StartTime { get; set; }
 
         public DateTime? EndTime { get; set; }
+
+        [MaxLength(255)]
+        public string WebhookUrl { get; set; }
+
+        public bool IsRetry { get; set; }
     }
 }
