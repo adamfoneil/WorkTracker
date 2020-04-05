@@ -9,8 +9,8 @@ using WorkTracker.Library.Models;
 namespace WorkTracker.Test
 {
     /// <summary>
-    /// to run this, start an instance of the SampleWebhook project first.
-    /// I don't know a better way
+    /// to run this, start an instance of the SampleWebhook project first, without debugger.
+    /// Then you can debug or run these tests.
     /// </summary>
     [TestClass]
     public class WebhookTests
@@ -18,7 +18,7 @@ namespace WorkTracker.Test
         private static SqlConnection GetConnection() => LocalDb.GetConnection("JobTracker");
 
         [TestMethod]
-        public void HelloSample()
+        public void PostAllEvents()
         {
             var options = new JobTrackerOptions()
             {
@@ -39,7 +39,7 @@ namespace WorkTracker.Test
         }
 
         [TestMethod]
-        public void HelloSucceededEvent()
+        public void PostSucceededEvent()
         {
             var options = new JobTrackerOptions()
             {
