@@ -1,15 +1,14 @@
-using JobManager.Library;
-using JobManager.Library.Models;
+using Dapper.CX.SqlServer.Extensions.Long;
+using WorkTracker.Library;
+using WorkTracker.Library.Exceptions;
+using WorkTracker.Library.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
 using SqlServer.LocalDb;
 using System;
-using Dapper.CX.Extensions;
-using Dapper.CX.SqlServer.Extensions.Long;
-using JobManager.Library.Exceptions;
-using Newtonsoft.Json.Linq;
 
-namespace JobManager.Test
+namespace WorkTracker.Test
 {
     [TestClass]
     public class BasicTests

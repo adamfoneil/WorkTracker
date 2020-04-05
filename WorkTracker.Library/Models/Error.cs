@@ -1,7 +1,7 @@
 ﻿using AO.DbSchema.Attributes;
 using System;
 
-namespace JobManager.Library.Models
+namespace WorkTracker.Library.Models
 {
     [Schema(JobTracker.Schema)]
     public class Error

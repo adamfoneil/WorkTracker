@@ -3,7 +3,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 
-namespace JobManager.Library.Models
+namespace WorkTracker.Library.Models
 {
     [Schema(JobTracker.Schema)]
     public class Event

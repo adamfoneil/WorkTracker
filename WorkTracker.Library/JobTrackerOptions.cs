@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 
-namespace JobManager.Library
+namespace WorkTracker.Library
 {
     public class JobTrackerOptions
     {

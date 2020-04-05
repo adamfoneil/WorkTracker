@@ -1,7 +1,7 @@
-﻿using JobManager.Library.Models;
+﻿using WorkTracker.Library.Models;
 using System;
 
-namespace JobManager.Library.Exceptions
+namespace WorkTracker.Library.Exceptions
 {
     public class DuplicateJobException : Exception
     {        

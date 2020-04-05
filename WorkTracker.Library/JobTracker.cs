@@ -1,8 +1,8 @@
 ﻿using Dapper;
 using Dapper.CX.Exceptions;
 using Dapper.CX.SqlServer.Extensions.Long;
-using JobManager.Library.Exceptions;
-using JobManager.Library.Models;
+using WorkTracker.Library.Exceptions;
+using WorkTracker.Library.Models;
 using Microsoft.Data.SqlClient;
 using ModelSync.Library.Models;
 using Newtonsoft.Json;
@@ -13,7 +13,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JobManager.Library
+namespace WorkTracker.Library
 {
     public class JobTracker : IDisposable
     {

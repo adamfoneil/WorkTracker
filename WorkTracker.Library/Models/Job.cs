@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace JobManager.Library.Models
+namespace WorkTracker.Library.Models
 {
     public enum JobStatus
     {

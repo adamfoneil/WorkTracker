@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29911.84
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JobTracker.Library", "WorkTracker.Library\JobTracker.Library.csproj", "{29F78406-3589-4F74-9801-40FB26CF9BB1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorkTracker.Library", "WorkTracker.Library\WorkTracker.Library.csproj", "{29F78406-3589-4F74-9801-40FB26CF9BB1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JobTracker.Test", "JobManager.Test\JobTracker.Test.csproj", "{753E359F-37E3-4562-9F18-BF6B7851B6BC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorkTracker.Test", "JobManager.Test\WorkTracker.Test.csproj", "{753E359F-37E3-4562-9F18-BF6B7851B6BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker.SampleWebhook", "JobManager.SampleWebhook\JobTracker.SampleWebhook.csproj", "{2DB86B9D-E361-4FC8-853F-0C6F07346E24}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkTracker.SampleWebhook", "JobManager.SampleWebhook\WorkTracker.SampleWebhook.csproj", "{2DB86B9D-E361-4FC8-853F-0C6F07346E24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
