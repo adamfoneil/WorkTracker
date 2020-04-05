@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WorkTracker.Library\JobManager.Library.csproj" />
+    <ProjectReference Include="..\WorkTracker.Library\JobTracker.Library.csproj" />
   </ItemGroup>
 
 </Project>
