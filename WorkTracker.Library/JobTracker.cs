@@ -12,6 +12,7 @@ using System.Data;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace WorkTracker.Library
 {
@@ -24,13 +25,15 @@ namespace WorkTracker.Library
         private JobStatus _statusOnDispose = JobStatus.Succeeded;
         private bool _autoDispose = true;
         private readonly Action<JObject> _updateEventData;
+        private readonly WebhookEventFlags _events;
         
         internal const string Schema = "jobs";
 
-        private JobTracker(Job job, Action<JObject> updateEventData = null)
+        private JobTracker(Job job, WebhookEventFlags webhookEventFlags, Action<JObject> updateEventData = null)
         {
             CurrentJob = job;
             _updateEventData = updateEventData;
+            _events = webhookEventFlags;
         }
         
         public Job CurrentJob { get; private set; }
@@ -53,12 +56,14 @@ namespace WorkTracker.Library
 
                 if (options?.Data != null) job.Data = JsonConvert.SerializeObject(options?.Data);
 
+                var events = options?.WebhookEvents ?? WebhookEventFlags.Started | WebhookEventFlags.Failed | WebhookEventFlags.Succeeded;
+
                 try_again:
                 
                 try
                 {
                     await cn.SaveAsync(job);
-                    await PostWebhookAsync(cn, job);
+                    await PostWebhookAsync(cn, job, events);
                 }
                 catch (CrudException)
                 {
@@ -75,7 +80,7 @@ namespace WorkTracker.Library
                     }                    
                 }
 
-                return new JobTracker(job, options?.UpdateEventData);
+                return new JobTracker(job, events, options?.UpdateEventData);
             }
         }
 
@@ -135,9 +140,24 @@ namespace WorkTracker.Library
             return await ExecuteUniqueAsync(userName, Guid.NewGuid().ToString(), getConnection, action, options);
         }
 
-        private static async Task PostWebhookAsync(SqlConnection cn, Job job)
+        private static async Task PostWebhookAsync(SqlConnection cn, Job job, WebhookEventFlags events)
         {
             if (string.IsNullOrEmpty(job.WebhookUrl)) return;
+
+            if (job.Status == JobStatus.Working)
+            {
+                if ((events & WebhookEventFlags.Started) != WebhookEventFlags.Started) return;
+            }
+
+            if (job.Status == JobStatus.Succeeded)
+            {
+                if ((events & WebhookEventFlags.Succeeded) != WebhookEventFlags.Succeeded) return;
+            }
+
+            if (job.Status == JobStatus.Failed)
+            {
+                if ((events & WebhookEventFlags.Failed) != WebhookEventFlags.Failed) return;
+            }
 
             string json = ToJsonInner(job);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -145,6 +165,7 @@ namespace WorkTracker.Library
 
             var @event = new Event()
             {
+                Timestamp = DateTime.UtcNow,
                 JobId = job.Id,
                 Status = job.Status,
                 Url = job.WebhookUrl,
@@ -204,7 +225,7 @@ namespace WorkTracker.Library
                         Timestamp = DateTime.UtcNow
                     }, txn: txn);
 
-                    await EndJobAsync(cn, CurrentJob, JobStatus.Failed, txn);
+                    await EndJobAsync(cn, CurrentJob, JobStatus.Failed, _events, txn);
                     txn.Commit();
                 }                                
             }
@@ -219,19 +240,43 @@ namespace WorkTracker.Library
         {
             using (var cn = _getConnection.Invoke())
             {
-                await EndJobAsync(cn, CurrentJob, JobStatus.Succeeded);                
+                await EndJobAsync(cn, CurrentJob, JobStatus.Succeeded, _events);
             }
 
             _autoDispose = false;
         }
 
-        private static async Task EndJobAsync(SqlConnection cn, Job job, JobStatus status, IDbTransaction txn = null)
+        public async Task<IEnumerable<Event>> QueryEventsAsync()
+        {
+            using (var cn = _getConnection.Invoke())
+            {
+                return await cn.QueryAsync<Event>("SELECT * FROM [jobs].[Event] WHERE [JobId]=@id", new { CurrentJob.Id });
+            }
+        }
+
+        public async Task<IEnumerable<Error>> QueryErrorsAsync()
+        {
+            using (var cn = _getConnection.Invoke())
+            {
+                return await cn.QueryAsync<Error>("SELECT * FROM [jobs].[Error] WHERE [JobId]=@id", new { CurrentJob.Id });
+            }
+        }
+
+        public async Task<IEnumerable<Retry>> QueryRetriesAsync()
+        {
+            using (var cn = _getConnection.Invoke())
+            {
+                return await cn.QueryAsync<Retry>("SELECT * FROM [jobs].[Retry] WHERE [UserName]=@userName AND [Key]=@key", new { CurrentJob.UserName, CurrentJob.Key });
+            }
+        }
+
+        private static async Task EndJobAsync(SqlConnection cn, Job job, JobStatus status, WebhookEventFlags webhookEvents, IDbTransaction txn = null)
         {
             job.Status = status;
             job.EndTime = DateTime.UtcNow;
             job.Duration = job.EndTime?.Subtract(job.StartTime) ?? TimeSpan.Zero;
             await cn.SaveAsync(job, txn: txn);
-            await PostWebhookAsync(cn, job);
+            await PostWebhookAsync(cn, job, webhookEvents);
         }
 
         private static async Task InitializeAsync(SqlConnection cn)

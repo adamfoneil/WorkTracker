@@ -1,4 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SqlServer.LocalDb;
+using System.Linq;
+using System.Net;
+using WorkTracker.Library;
+using WorkTracker.Library.Models;
 
 namespace WorkTracker.Test
 {
@@ -9,9 +15,48 @@ namespace WorkTracker.Test
     [TestClass]
     public class WebhookTests
     {
+        private static SqlConnection GetConnection() => LocalDb.GetConnection("JobTracker");
+
         [TestMethod]
         public void HelloSample()
         {
+            var options = new JobTrackerOptions()
+            {
+                WebhookUrl = "http://localhost:7071/api/JobTrackerEvent"
+            };
+
+            using (var job = JobTracker.StartAsync("adamo", GetConnection, options).Result)
+            {
+                job.SucceededAsync().Wait();
+
+                var events = job.QueryEventsAsync().Result;
+
+                Assert.IsTrue(events.Count() == 2);
+                Assert.IsTrue(events.All(e => e.ResponseCode == HttpStatusCode.OK));
+                Assert.IsTrue(events.Any(e => e.Status == JobStatus.Working));
+                Assert.IsTrue(events.Any(e => e.Status == JobStatus.Succeeded));
+            }
+        }
+
+        [TestMethod]
+        public void HelloSucceededEvent()
+        {
+            var options = new JobTrackerOptions()
+            {
+                WebhookUrl = "http://localhost:7071/api/JobTrackerEvent",
+                WebhookEvents = WebhookEventFlags.Succeeded
+            };
+
+            using (var job = JobTracker.StartAsync("adamo", GetConnection, options).Result)
+            {
+                job.SucceededAsync().Wait();
+
+                var events = job.QueryEventsAsync().Result;
+
+                Assert.IsTrue(events.Count() == 1);
+                Assert.IsTrue(events.All(e => e.ResponseCode == HttpStatusCode.OK));                
+                Assert.IsTrue(events.All(e => e.Status == JobStatus.Succeeded));
+            }
 
         }
     }
