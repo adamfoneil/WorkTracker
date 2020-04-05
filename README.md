@@ -13,6 +13,12 @@ using (var job = await JobTracker.StartAsync(userName, getConnection))
 }
 ```
 
+This will create records in the `jobs.Job` table looking like this:
+
+![img](https://adamosoftware.blob.core.windows.net/images/job-tracker-jobs.png)
+
+Here are all the [model classes](https://github.com/adamosoftware/WorkTracker/tree/master/WorkTracker.Library/Models) JobTracker creates. I use my [ModelSync](https://github.com/adamosoftware/ModelSync) library to [create](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/JobTracker.cs#L237) the tables in your database.
+
 If you want to assure that the same job can't run more than once, use the `StartUniqueAsync` method and pass some sort of key you decide is unique in your application. You'll get an exception if the job has been run before. If the job has failed in the past, it will retry up to 10 times.
 
 ```csharp
@@ -42,8 +48,6 @@ using (var job = await JobTracker.StartAsync(userName, getConnection))
 }
 ```
 
-If you want to log custom data with a job, use the optional `data` argument on the `StartAsync` or `StartUniqueAsync` methods. This will call `JsonConvert.SerializeObject` and store it in the [Job.Data](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Job.cs#L33) column.
-
-This library will (at least try to) create a couple tables in your database [Job](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Job.cs) and [Error](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Error.cs). Table creation happens with the [InitializeAsync](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/JobTracker.cs#L72) method.
+If you want to log custom data with a job, pass an optional [JobTrackerOptions](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/JobTrackerOptions.cs) argument on the `StartAsync` or `StartUniqueAsync` methods. This will call `JsonConvert.SerializeObject` and store it in the [Job.Data](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Models/Job.cs#L39) column. This is indeed how you use webhooks with JobTracker, via the [WebhookUrl](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/JobTrackerOptions.cs#L16) property. This is a good way to trigger notifications on the status of background jobs, or to trigger other general-purpose events.
 
 See the [tests](https://github.com/adamosoftware/WorkTracker/blob/master/JobManager.Test/BasicTests.cs) to see it in action. This uses my [SqlServer.LocalDb](https://github.com/adamosoftware/SqlServer.LocalDb) project for easy database connections in test projects.
