@@ -19,7 +19,7 @@ This will create records in the `jobs.Job` table looking like this:
 
 Here are all the [model classes](https://github.com/adamosoftware/WorkTracker/tree/master/WorkTracker.Library/Models) JobTracker creates. I use my [ModelSync](https://github.com/adamosoftware/ModelSync) library to [create](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/JobTracker.cs#L237) the tables in your database.
 
-If you want to assure that the same job can't run more than once, use the `StartUniqueAsync` method and pass some sort of key you decide is unique in your application. You'll get an exception if the job has been run before. If the job has failed in the past, it will retry up to 10 times.
+If you want to assure that the same job can't run more than once, use the `StartUniqueAsync` method and pass some sort of key you decide is unique in your application. You'll get a [DuplicateJobException](https://github.com/adamosoftware/WorkTracker/blob/master/WorkTracker.Library/Exceptions/DuplicateJobException.cs) job has been run before. If the job has failed in the past, it will retry up to 10 times.
 
 ```csharp
 var userName = "adamo";
